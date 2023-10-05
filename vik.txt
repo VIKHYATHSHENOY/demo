@@ -1,0 +1,220 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.svm import SVR
+from datetime import datetime
+
+
+# Load the dataset
+from google.colab import files
+uploaded  = files.upload()
+df = pd.read_csv("crop_price.csv")
+df = df.drop(df.index[502:])
+df
+
+df.describe()
+
+df.info()
+
+df.max()
+
+df.min()
+
+# Data Preprocessing
+# Encode categorical features like 'district', 'crop', 'market'
+le = LabelEncoder()
+df['District'] = le.fit_transform(df['District'])
+df['Crop'] = le.fit_transform(df['Crop'])
+df['Market'] = le.fit_transform(df['Market'])
+
+
+# Convert 'date' to a numerical feature (e.g., days since a reference date)
+reference_date = datetime.strptime('2018-01-01', '%Y-%m-%d')  # Change to your reference date
+df['Date'] = (pd.to_datetime(df['Date']) - reference_date).dt.days
+
+# ...
+from sklearn.impute import SimpleImputer
+# Split data into features (X) and target (y)
+X = df.drop('Price (INR/quintal)', axis=1)
+y = df['Price (INR/quintal)']
+
+# Handle missing values in y
+y_imputer = SimpleImputer(strategy='mean')
+y = y_imputer.fit_transform(y.values.reshape(-1, 1)).flatten()
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Rest of your code remains unchanged from this point
+# ...
+
+X
+
+y
+
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+from sklearn.preprocessing import StandardScaler
+#Scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+
+df.dropna(inplace=True)
+
+from sklearn.impute import SimpleImputer
+
+# Create an imputer instance
+imputer = SimpleImputer(strategy='mean')
+
+# Fit and transform the imputer on your training data
+X_train = imputer.fit_transform(X_train)
+
+# Transform the test data as well
+X_test = imputer.transform(X_test)
+
+# Define a list of model names
+model_names = [
+    'Linear Regression',
+    'Decision Tree',
+    'Random Forest',
+    'Support Vector Machine'
+]
+
+# Define a list of model instances
+models = [
+    LinearRegression(),
+    DecisionTreeRegressor(random_state=42),
+    RandomForestRegressor(random_state=42),
+    SVR()
+]
+
+
+# Initialize dictionaries to store MSE and R2 scores for each model
+mse_scores = {}
+r2_scores = {}
+acc_score = {}
+
+
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score
+
+# Initialize dictionaries to store scores
+mse_scores = {}
+r2_scores = {}
+acc_score = {}
+# Train and evaluate models
+for model_name, model in zip(model_names, models):
+    # Train the model
+    model.fit(X_train, y_train)
+
+    # Make predictions
+    y_pred = model.predict(X_test)
+    # Calculate MSE and R2 score
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+
+    # Store scores in dictionaries
+    mse_scores[model_name] = mse
+    r2_scores[model_name] = r2
+
+
+# Display the MSE and R2 scores for each model
+for model_name, mse in mse_scores.items():
+    print(f"Model: {model_name}, Mean Squared Error: {mse}")
+
+for model_name, r2 in r2_scores.items():
+    print(f"Model: {model_name}, R2 Score: {r2}")
+
+print()
+
+# Find the model with the lowest MSE
+best_model_mse = min(mse_scores, key=mse_scores.get)
+best_mse_score = mse_scores[best_model_mse]
+
+# Find the model with the highest R2 score
+best_model_r2 = max(r2_scores, key=r2_scores.get)
+best_r2_score = r2_scores[best_model_r2]
+
+# Display the best model based on MSE and R2
+print("Best Model based on MSE:")
+print(f"Model: {best_model_mse}, Mean Squared Error: {best_mse_score}")
+
+print("\nBest Model based on R2 Score:")
+print(f"Model: {best_model_r2}, R2 Score: {best_r2_score}")
+
+
+import seaborn as sns
+plt.figure(figsize=(15,5))
+
+cpr = df['Crop'].value_counts().sort_values(ascending=False)[0:23]
+
+g = sns.barplot(x=cpr.index, y= cpr.values , data=df)
+
+for i in range(23):
+    value = cpr[i]
+    g.text(x = i+0.125, y= value , s= value , color= 'black', ha= 'center', fontsize=10)
+
+plt.title('CROP DISTRIBUTION',color='Red')
+plt.xlabel('CROPS')
+plt.xticks(rotation=45)
+plt.show()
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Reduce the figure size to fit within the limits
+plt.figure(figsize=(2, 5))
+
+# Get the top 10 crops by max price per quintal
+cpr = df.groupby(['Crop'])['Price (INR/quintal)'].max().sort_values(ascending=False).head(10)
+
+# Create a bar plot
+g = sns.barplot(x=cpr.values, y=cpr.index, data=df)
+
+# Add annotations to the bars
+for i, value in enumerate(cpr.values):
+    g.text(x=value, y=i, s=f'{value:.2f}', color='black', ha='right', fontsize=10)
+
+plt.title('TOP 10 HEIGHEST CROPS AS PER PRICE PER QUINTAL', color='Red')
+plt.ylabel('CROPS')
+plt.xlabel("Price per Quintal")
+plt.show()
+
+import matplotlib.pyplot as plt
+
+# Model names
+models = list(mse_scores.keys())
+
+# Model evaluation metrics
+mse_values = list(mse_scores.values())
+r2_values = list(r2_scores.values())
+
+# Plotting
+plt.figure(figsize=(12, 6))
+plt.bar(models, mse_values, label='Mean Squared Error (MSE)', alpha=0.7)
+plt.bar(models, r2_values, label='R-squared (R2)', alpha=0.7)
+
+# Adding labels and title
+plt.xlabel('Models')
+plt.ylabel('Scores')
+plt.title('Model Evaluation Metrics')
+plt.legend()
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
